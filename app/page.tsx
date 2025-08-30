@@ -56,8 +56,9 @@ export default function Dashboard() {
 
   // Filtering + Search
   let filteredShops = shops.filter((shop) => {
+    console.log("\n\n\n------calllll")
     // You can add more filters as needed
-    if (search && !shop.name.toLowerCase().includes(search.toLowerCase()))
+    if (search && !shop.name.toLowerCase().includes(search.toLowerCase()) && !shop.address.toLowerCase().includes(search.toLowerCase()))
       return false;
     return true;
   });
@@ -160,8 +161,12 @@ export default function Dashboard() {
         {/* View Section */}
         {view === "map" ? (
           <div className="h-96 w-full rounded-xl overflow-hidden shadow">
+            {filteredShops.map(
+                (shop) =>
             <MapContainer
-              center={[23.0225, 72.5714]}
+            //   center={[23.0225, 72.5714]}
+              center={[shop.latitude, shop.longitude]}
+
               zoom={12}
               className="h-full w-full"
             >
@@ -169,10 +174,8 @@ export default function Dashboard() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
               />
-              {filteredShops.map(
-                (shop) =>
-                  shop.latitude &&
-                  shop.longitude && (
+              
+                   
                     <Marker
                       key={shop.id}
                       position={[shop.latitude, shop.longitude]}
@@ -186,9 +189,10 @@ export default function Dashboard() {
                         {shop.phone}
                       </Popup>
                     </Marker>
-                  )
-              )}
+                  
+              {/* )} */}
             </MapContainer>
+        )}
           </div>
         ) : (
           <div
