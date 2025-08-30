@@ -17,6 +17,13 @@ export default function WorkshopDetailPage() {
   const router = useRouter();
   const id = searchParams.get("id");
   const [shop, setShop] = useState<any>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -37,6 +44,17 @@ export default function WorkshopDetailPage() {
         <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white">
           <h1 className="text-4xl font-bold">{shop.name}</h1>
           <p className="mt-2 text-lg">{shop.address}</p>
+        </div>
+      </div>
+
+      <div>
+        <div className="absolute top-4 left-4">
+          <button
+            className="bg-white/70 backdrop-blur-lg px-3 py-1 rounded-full shadow hover:bg-white"
+            onClick={() => router.back()}
+          >
+            ← Back
+          </button>
         </div>
       </div>
 
@@ -84,7 +102,21 @@ export default function WorkshopDetailPage() {
             <p className="font-medium">{shop.owner}</p>
             <p className="text-gray-600">📞 {shop.phone}</p>
             <p className="text-gray-600">✉️ {shop.email}</p>
-            <button className="bg-blue-500 rounded-sm padding-5 text-white" onClick={() => router.push('/service')}>request service</button>
+
+            {/* Request Service Button */}
+            <button
+              className="bg-blue-500 rounded-sm px-4 py-2 text-white mt-2 w-full"
+              onClick={() => {
+                if (isLoggedIn) {
+                  router.push("/service");
+                } else {
+                  alert("You must be logged in to request a service.");
+                  router.push("/login");
+                }
+              }}
+            >
+              Request Service
+            </button>
           </div>
 
           {/* Map */}
@@ -104,10 +136,9 @@ export default function WorkshopDetailPage() {
                   </Marker>
                 </MapContainer>
               )}
-              
             </div>
-            <p className="text-xs text-gray-500">
-                      <b>Latitude:</b> {shop.latitude} <b>Longitude:</b> {shop.longitude}
+            <p className="text-xs text-gray-500 mt-2">
+              <b>Latitude:</b> {shop.latitude} <b>Longitude:</b> {shop.longitude}
             </p>
           </div>
         </div>
