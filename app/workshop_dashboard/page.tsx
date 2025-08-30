@@ -102,7 +102,11 @@ export default function WorkshopDetailPage() {
                   </Marker>
                 </MapContainer>
               )}
+              
             </div>
+            <p className="text-xs text-gray-500">
+                      <b>Latitude:</b> {shop.latitude} <b>Longitude:</b> {shop.longitude}
+            </p>
           </div>
         </div>
       </div>
