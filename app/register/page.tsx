@@ -3,12 +3,7 @@ import { useState } from "react";
 import { User, Mail, Lock, Shield } from "lucide-react";
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-    name: "",
-    role: "user",
-  });
+  const [form, setForm] = useState({ email: "", password: "", name: "", role: "" });
 
   async function handleSubmit(e: any) {
     e.preventDefault();
