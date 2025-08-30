@@ -23,21 +23,61 @@ const Dashboard: React.FC<DashboardProps> = () => {
   const [selectedCategory, setSelectedCategory] = useState('Category');
   const [selectedDuration, setSelectedDuration] = useState('Duration');
   const [user, setUser] = useState<User | null>(null);
+  const [serviceRequests, setServiceRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  // Fetch requests (refactored for reuse)
+  const fetchRequests = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/services/getServices');
+      const data = await res.json();
+      setServiceRequests(data.requests || []);
+    } catch {
+      setServiceRequests([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
 
   const handleLogout = () => {
     removeUserFromStorage();
     router.push('/login');
   };
 
+  // Handler to update status
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    try {
+      setLoading(true);
+      await fetch('/api/services/getServices', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: newStatus })
+      });
+      await fetchRequests();
+    } catch (err) {
+      // Optionally show error
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
+      <button
+        className="bg-red-600 hover:bg-red-700 px-4 py-1 rounded text-sm transition-colors"
+        onClick={() => router.push('/')}
+      >Back</button>
       <div className="max-w-6xl mx-auto bg-gray-800 rounded-lg border border-gray-600 p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-600">
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span className="text-sm">Agent Tax Request</span>
+            <span className="text-sm">Admin dashboard</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -111,16 +151,107 @@ const Dashboard: React.FC<DashboardProps> = () => {
           </div>
         </div>
 
-        {/* Main Content Area */}
-        {/* <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-8 text-center min-h-96 flex items-center justify-center">
-          <div className="text-yellow-200">
-            <h3 className="text-lg mb-2">Dash Board to display the Statistics</h3>
-            <p className="text-sm opacity-80">of completed Service & Employee performance</p>
+        {/* Service Requests Table */}
+        {/* <div className="mt-8">
+          <h3 className="text-lg font-semibold mb-4">Service Requests</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-gray-800 border rounded">
+              <thead>
+                <tr>
+                  <th className="px-4 py-2 border">Name</th>
+                  <th className="px-4 py-2 border">Service Type</th>
+                  <th className="px-4 py-2 border">Date</th>
+                  <th className="px-4 py-2 border">Issue</th>
+                  <th className="px-4 py-2 border">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {serviceRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-4 text-gray-400">No requests found.</td>
+                  </tr>
+                ) : (
+                  serviceRequests.map((req) => (
+                    <tr key={req.name}>
+                      <td className="px-4 py-2 border">{req.name}</td>
+                      <td className="px-4 py-2 border">{req.serviceType}</td>
+                      <td className="px-4 py-2 border">{req.date ? new Date(req.date).toLocaleString() : ''}</td>
+                      <td className="px-4 py-2 border">{req.detailedIssue}</td>
+                      <td className="px-4 py-2 border">
+                        <select
+                          value={req.status}
+                          onChange={e => handleStatusChange(req.name, e.target.value)}
+                          className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                          disabled={loading}
+                        >
+                          <option value="OPEN">Open</option>
+                          <option value="IN_PROGRESS">In Progress</option>
+                          <option value="PENDING">Pending</option>
+                          <option value="COMPLETED">Completed</option>
+                          <option value="CLOSED">Closed</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div> */}
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold mb-4">Service Requests</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-gray-800 border rounded">
+              <thead>
+                <tr>
+                  <th className="px-4 py-2 border">Name</th>
+                  <th className="px-4 py-2 border">Service Type</th>
+                  <th className="px-4 py-2 border">Date</th>
+                  <th className="px-4 py-2 border">Issue</th>
+                  <th className="px-4 py-2 border">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {serviceRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-4 text-gray-400">
+                      No requests found.
+                    </td>
+                  </tr>
+                ) : (
+                  serviceRequests.map((req) => (
+                    <tr key={req.id}>
+                      <td className="px-4 py-2 border">{req.name}</td>
+                      <td className="px-4 py-2 border">{req.serviceType}</td>
+                      <td className="px-4 py-2 border">
+                        {req.createdAt ? new Date(req.createdAt).toLocaleString() : ""}
+                      </td>
+                      <td className="px-4 py-2 border">{req.issue || req.detailedIssue}</td>
+                      <td className="px-4 py-2 border">
+                        <select
+                          value={req.status ?? "OPEN"}  // status jo DB me hai usko dikhao
+                          onChange={(e) => handleStatusChange(req.id, e.target.value)} // id use karna hai
+                          className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                          disabled={loading}
+                        >
+                          <option value="OPEN">Open</option>
+                          <option value="IN_PROGRESS">In Progress</option>
+                          <option value="PENDING">Pending</option>
+                          <option value="COMPLETED">Completed</option>
+                          <option value="CLOSED">Closed</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
+    // </div >
   );
 };
 
-export default Dashboard;
+export default Dashboard;
