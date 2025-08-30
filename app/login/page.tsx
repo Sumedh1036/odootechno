@@ -3,11 +3,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ email: "", password: "", role: "" });
   const router = useRouter();
 
   async function handleSubmit(e: any) {
     e.preventDefault();
+    if (!form.role) {
+      alert("Please select a role.");
+      return;
+    }
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -16,7 +20,13 @@ export default function LoginPage() {
     const data = await res.json();
     if (data.token) {
       localStorage.setItem("token", data.token);
-      router.push("/dashboard");
+      localStorage.setItem("role", data.role);
+      // Redirect based on role
+      if (data.role === "admin") {
+        router.push("/dashboard/admin");
+      } else {
+        router.push("/dashboard/user");
+      }
     } else {
       alert(JSON.stringify(data));
     }
@@ -30,6 +40,17 @@ export default function LoginPage() {
           onChange={(e) => setForm({ ...form, email: e.target.value })} />
         <input type="password" placeholder="Password"
           onChange={(e) => setForm({ ...form, password: e.target.value })} />
+        <select
+          value={form.role}
+          onChange={(e) => setForm({ ...form, role: e.target.value })}
+          className="px-2 py-1 rounded border"
+          required
+        >
+          <option value="" disabled>Select role</option>
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+          <option value="worker">Worker</option>
+        </select>
         <button className="bg-green-600 text-white px-4 py-2 rounded">Login</button>
       </form>
     </div>
