@@ -33,6 +33,21 @@ const workshopIcon = new L.Icon({
   iconAnchor: [12, 41],
 });
 
+// Haversine formula to calculate distance in km between two lat/lng points
+function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 export default function Dashboard() {
   const [view, setView] = useState("list");
   const [showOpenOnly, setShowOpenOnly] = useState(false);
@@ -43,9 +58,21 @@ export default function Dashboard() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [shops, setShops] = useState<any[]>([]);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     setIsLoggedIn(!!localStorage.getItem("token"));
+    // Fetch user location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        (err) => {
+          setUserLocation(null);
+        }
+      );
+    }
   }, []);
 
   useEffect(() => {
@@ -63,8 +90,35 @@ export default function Dashboard() {
     return true;
   });
 
-  // Sorting (example: by name)
-  filteredShops = filteredShops.sort((a, b) => a.name.localeCompare(b.name));
+  // Add distance property to each shop if userLocation is available
+  const shopsWithDistance = filteredShops.map((shop) => {
+    let distance = null;
+    if (
+      userLocation &&
+      typeof shop.latitude === "number" &&
+      typeof shop.longitude === "number"
+    ) {
+      distance = getDistanceFromLatLonInKm(
+        userLocation.lat,
+        userLocation.lng,
+        shop.latitude,
+        shop.longitude
+      );
+    }
+    return { ...shop, distance };
+  });
+
+  // Sort by distance if userLocation is available and sortBy is "nearby"
+  let sortedShops = shopsWithDistance;
+  if (sortBy === "nearby" && userLocation) {
+    sortedShops = [...shopsWithDistance].sort((a, b) => {
+      if (a.distance == null) return 1;
+      if (b.distance == null) return -1;
+      return a.distance - b.distance;
+    });
+  } else {
+    sortedShops = [...shopsWithDistance].sort((a, b) => a.name.localeCompare(b.name));
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100">
@@ -120,6 +174,18 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-6xl mx-auto p-6">
+        {/* User Location */}
+        {userLocation ? (
+          <div className="mb-4 text-sm text-gray-700 bg-white rounded-lg shadow p-3">
+            <span className="font-semibold">Your Location:</span>{" "}
+            Latitude: {userLocation.lat}, Longitude: {userLocation.lng}
+          </div>
+        ) : (
+          <div className="mb-4 text-sm text-gray-700 bg-white rounded-lg shadow p-3">
+            Unable to fetch your location.
+          </div>
+        )}
+
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-4 bg-white rounded-xl shadow p-3 mb-6">
           <div className="flex items-center w-full max-w-lg border rounded-xl px-3 py-2 bg-white shadow">
@@ -161,12 +227,12 @@ export default function Dashboard() {
         {/* View Section */}
         {view === "map" ? (
           <div className="h-96 w-full rounded-xl overflow-hidden shadow">
-            {filteredShops.map(
-                (shop) =>
             <MapContainer
-            //   center={[23.0225, 72.5714]}
-              center={[shop.latitude, shop.longitude]}
-
+              center={
+                sortedShops.length > 0 && sortedShops[0].latitude && sortedShops[0].longitude
+                  ? [sortedShops[0].latitude, sortedShops[0].longitude]
+                  : [23.0225, 72.5714]
+              }
               zoom={12}
               className="h-full w-full"
             >
@@ -174,8 +240,10 @@ export default function Dashboard() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
               />
-              
-                   
+              {sortedShops.map(
+                (shop) =>
+                  shop.latitude &&
+                  shop.longitude && (
                     <Marker
                       key={shop.id}
                       position={[shop.latitude, shop.longitude]}
@@ -187,12 +255,25 @@ export default function Dashboard() {
                         {shop.address}
                         <br />
                         {shop.phone}
+                        <br />
+                        <span>
+                          <b>Latitude:</b> {shop.latitude}
+                          <br />
+                          <b>Longitude:</b> {shop.longitude}
+                        </span>
+                        {shop.distance !== null && (
+                          <>
+                            <br />
+                            <span>
+                              <b>Distance:</b> {shop.distance.toFixed(2)} km
+                            </span>
+                          </>
+                        )}
                       </Popup>
                     </Marker>
-                  
-              {/* )} */}
+                  )
+              )}
             </MapContainer>
-        )}
           </div>
         ) : (
           <div
@@ -202,8 +283,8 @@ export default function Dashboard() {
                 : "flex flex-col gap-4"
             }
           >
-            {filteredShops.length > 0 ? (
-              filteredShops.map((shop) => (
+            {sortedShops.length > 0 ? (
+              sortedShops.map((shop) => (
                 <motion.div
                   key={shop.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -234,6 +315,14 @@ export default function Dashboard() {
                       ))}
                     </div>
                     <p className="text-sm text-gray-500">{shop.phone}</p>
+                    <p className="text-xs text-gray-500">
+                      <b>Latitude:</b> {shop.latitude} <b>Longitude:</b> {shop.longitude}
+                    </p>
+                    {shop.distance !== null && (
+                      <p className="text-sm text-indigo-700 font-semibold">
+                        Distance: {shop.distance.toFixed(2)} km
+                      </p>
+                    )}
                     <button
                       onClick={() =>
                         router.push(`/workshop_dashboard?id=${shop.id}`)
