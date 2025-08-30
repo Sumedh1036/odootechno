@@ -5,17 +5,13 @@ import jwt from "jsonwebtoken";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, role } = await req.json();
-    if (!email || !password || !role) {
-      return NextResponse.json({ error: "Email, password, and role are required" }, { status: 400 });
+    const { email, password } = await req.json();
+    if (!email || !password) {
+      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-
-    if (user.role !== role) {
-      return NextResponse.json({ error: "Role does not match" }, { status: 401 });
-    }
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
@@ -24,12 +20,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "JWT secret not configured" }, { status: 500 });
     }
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
+    // Return role in the response
     return NextResponse.json({ token, role: user.role });
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
