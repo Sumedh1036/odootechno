@@ -282,7 +282,7 @@ export default function Dashboard() {
         {view === "map" ? (
           <div className="h-96 w-full rounded-xl overflow-hidden shadow">
             <MapContainer
-              center={[23.0225, 72.5714]} // Default Ahmedabad center
+              center={[23.0225, 72.5714]} 
               zoom={12}
               className="h-full w-full"
             >
@@ -367,6 +367,15 @@ export default function Dashboard() {
                     <p className="text-sm text-gray-500">
                       {workshop.distance} km away
                     </p>
+
+                    <button
+                      onClick={() =>
+                        router.push(`/workshop_dashboard?id=${workshop.id}`)
+                      }
+                      className="mt-2 bg-indigo-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-indigo-600"
+                    >
+                      View Details
+                    </button>
                   </div>
                 </motion.div>
               ))
