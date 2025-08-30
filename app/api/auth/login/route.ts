@@ -24,8 +24,8 @@ export async function POST(req: Request) {
       expiresIn: "1h",
     });
 
-    // Return role in the response
-    return NextResponse.json({ token, role: user.role });
+    // Return role and userId in the response
+    return NextResponse.json({ token, role: user.role, userId: user.id });
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
