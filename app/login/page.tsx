@@ -18,13 +18,18 @@ export default function LoginPage() {
       body: JSON.stringify(form),
     });
     const data = await res.json();
+    console.log(data.role);
     if (data.token) {
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.role);
       if (data.role === "admin") {
         router.push("/dashboard/admin");
-      } else {
-        router.push("/dashboard/user");
+      }
+      else if (data.role === "worker") {
+        router.push("/dashboard/worker");   
+    } 
+      else {
+        router.push("/");
       }
     } else {
       alert(JSON.stringify(data));
