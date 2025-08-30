@@ -22,6 +22,10 @@ export default function LoginPage() {
     if (data.token) {
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.role);
+      if (data.userId) {
+        localStorage.setItem("adminId", data.userId); // store adminId for admin
+        localStorage.setItem("userId", data.userId);   // store userId for all
+      }
       if (data.role === "admin") {
         router.push("/dashboard/admin");
       }
