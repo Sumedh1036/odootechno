@@ -15,5 +15,3 @@ model User {
   createdAt DateTime @default(now())
   role      String   @default("user")
 }
-
-
