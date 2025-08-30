@@ -42,97 +42,29 @@ export default function Dashboard() {
   const [search, setSearch] = useState("");
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [shops, setShops] = useState<any[]>([]);
 
   useEffect(() => {
     setIsLoggedIn(!!localStorage.getItem("token"));
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    setIsLoggedIn(false);
-    router.push("/");
-  };
-
-  const [workshops, setWorkshops] = useState([
-    {
-      id: 1,
-      name: "Babu Mechanic",
-      status: "Open",
-      distance: 2.5,
-      location: "Silver Auditorium, Ahmedabad, Gujarat",
-      rating: 4,
-      image: "https://source.unsplash.com/400x200/?car,workshop",
-      coords: null, // will fill via geocoding
-    },
-    {
-      id: 2,
-      name: "Ramesh Automobiles",
-      status: "Closed",
-      distance: 12,
-      location: "Gandhinagar, Gujarat",
-      rating: 3.5,
-      image: "https://source.unsplash.com/400x200/?car,garage",
-      coords: null, // will fill via geocoding
-    },
-    {
-      id: 3,
-      name: "Car Garage",
-      status: "Open",
-      distance: 5,
-      location: "Near Gota, Ahmedabad, Gujarat",
-      rating: 5,
-      image: "https://source.unsplash.com/400x200/?garage,car",
-      coords: null,
-    },
-  ]);
-
-  // Fetch coordinates from Nominatim API (OpenStreetMap geocoding)
   useEffect(() => {
-    async function fetchCoords() {
-      const updated = await Promise.all(
-        workshops.map(async (w) => {
-          if (w.coords) return w;
-          try {
-            const res = await fetch(
-              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-                w.location
-              )}`
-            );
-            const data = await res.json();
-            if (data && data[0]) {
-              return {
-                ...w,
-                coords: [parseFloat(data[0].lat), parseFloat(data[0].lon)],
-              };
-            }
-          } catch (err) {
-            console.error("Geocoding error:", err);
-          }
-          return w;
-        })
-      );
-      setWorkshops(updated);
-    }
-    fetchCoords();
+    fetch("/api/shop/list")
+      .then((res) => res.json())
+      .then((data) => setShops(data.shops || []));
   }, []);
 
   // Filtering + Search
-  let filteredWorkshops = workshops.filter((w) => {
-    if (showOpenOnly && w.status !== "Open") return false;
-    if (statusFilter && w.status !== statusFilter) return false;
-    if (distanceFilter && w.distance > parseFloat(distanceFilter)) return false;
-    if (search && !w.name.toLowerCase().includes(search.toLowerCase()))
+  let filteredShops = shops.filter((shop) => {
+    console.log("\n\n\n------calllll")
+    // You can add more filters as needed
+    if (search && !shop.name.toLowerCase().includes(search.toLowerCase()) && !shop.address.toLowerCase().includes(search.toLowerCase()))
       return false;
     return true;
   });
 
-  // Sorting
-  if (sortBy === "nearby") {
-    filteredWorkshops = filteredWorkshops.sort((a, b) => a.distance - b.distance);
-  } else if (sortBy === "rated") {
-    filteredWorkshops = filteredWorkshops.sort((a, b) => b.rating - a.rating);
-  }
+  // Sorting (example: by name)
+  filteredShops = filteredShops.sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100">
@@ -159,7 +91,12 @@ export default function Dashboard() {
             </>
           ) : (
             <button
-              onClick={handleLogout}
+              onClick={() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("role");
+                setIsLoggedIn(false);
+                router.push("/");
+              }}
               className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-xl shadow-md"
             >
               Logout
@@ -185,62 +122,6 @@ export default function Dashboard() {
       <div className="max-w-6xl mx-auto p-6">
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-4 bg-white rounded-xl shadow p-3 mb-6">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={showOpenOnly}
-              onChange={(e) => setShowOpenOnly(e.target.checked)}
-              className="h-4 w-4"
-            />
-            Show open only
-          </label>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="p-2 rounded-xl border shadow-sm"
-          >
-            <option value="">Status</option>
-            <option value="Open">Open</option>
-            <option value="Closed">Closed</option>
-          </select>
-
-          <select
-            value={distanceFilter}
-            onChange={(e) => setDistanceFilter(e.target.value)}
-            className="p-2 rounded-xl border shadow-sm"
-          >
-            <option value="">Distance</option>
-            <option value="5">Within 5 km</option>
-            <option value="10">Within 10 km</option>
-            <option value="15">Within 15 km</option>
-          </select>
-
-          <div className="flex items-center gap-2 ml-auto text-sm">
-            <span>Sort by:</span>
-            <label className="flex items-center gap-1">
-              <input
-                type="radio"
-                value="nearby"
-                checked={sortBy === "nearby"}
-                onChange={() => setSortBy("nearby")}
-              />
-              Nearby
-            </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="radio"
-                value="rated"
-                checked={sortBy === "rated"}
-                onChange={() => setSortBy("rated")}
-              />
-              Most Rated
-            </label>
-          </div>
-        </div>
-
-        {/* Search + View Toggle */}
-        <div className="flex items-center gap-3 mb-6">
           <div className="flex items-center w-full max-w-lg border rounded-xl px-3 py-2 bg-white shadow">
             <Search className="h-4 w-4 text-gray-500 mr-2" />
             <input
@@ -251,7 +132,6 @@ export default function Dashboard() {
               className="flex-1 outline-none text-sm bg-transparent"
             />
           </div>
-
           <button
             onClick={() => setView("list")}
             className={`p-2 rounded-lg border shadow ${
@@ -281,8 +161,12 @@ export default function Dashboard() {
         {/* View Section */}
         {view === "map" ? (
           <div className="h-96 w-full rounded-xl overflow-hidden shadow">
+            {filteredShops.map(
+                (shop) =>
             <MapContainer
-              center={[23.0225, 72.5714]} 
+            //   center={[23.0225, 72.5714]}
+              center={[shop.latitude, shop.longitude]}
+
               zoom={12}
               className="h-full w-full"
             >
@@ -290,25 +174,25 @@ export default function Dashboard() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
               />
-              {filteredWorkshops.map(
-                (workshop) =>
-                  workshop.coords && (
+              
+                   
                     <Marker
-                      key={workshop.id}
-                      position={workshop.coords}
+                      key={shop.id}
+                      position={[shop.latitude, shop.longitude]}
                       icon={workshopIcon}
                     >
                       <Popup>
-                        <b>{workshop.name}</b>
+                        <b>{shop.name}</b>
                         <br />
-                        {workshop.location}
+                        {shop.address}
                         <br />
-                        {workshop.distance} km away
+                        {shop.phone}
                       </Popup>
                     </Marker>
-                  )
-              )}
+                  
+              {/* )} */}
             </MapContainer>
+        )}
           </div>
         ) : (
           <div
@@ -318,59 +202,41 @@ export default function Dashboard() {
                 : "flex flex-col gap-4"
             }
           >
-            {filteredWorkshops.length > 0 ? (
-              filteredWorkshops.map((workshop) => (
+            {filteredShops.length > 0 ? (
+              filteredShops.map((shop) => (
                 <motion.div
-                  key={workshop.id}
+                  key={shop.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                   className="bg-white rounded-2xl shadow-md hover:shadow-xl transition overflow-hidden"
                 >
-                  <img
-                    src={workshop.image}
-                    alt={workshop.name}
-                    className="w-full h-40 object-cover"
-                  />
+                  {/* You can add an image field to Shop if needed */}
                   <div className="p-4 space-y-2">
                     <div className="flex justify-between items-center">
-                      <h2 className="text-lg font-semibold">{workshop.name}</h2>
-                      <span
-                        className={`text-sm font-medium px-3 py-1 rounded-xl ${
-                          workshop.status === "Open"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {workshop.status}
+                      <h2 className="text-lg font-semibold">{shop.name}</h2>
+                      <span className="text-sm font-medium px-3 py-1 rounded-xl bg-blue-100 text-blue-700">
+                        {shop.owner}
                       </span>
                     </div>
-
                     <p className="text-sm text-gray-600 flex items-center gap-1">
                       <MapPin className="h-4 w-4 text-purple-500" />
-                      {workshop.location}
+                      {shop.address}
                     </p>
-
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-4 w-4 ${
-                            i < workshop.rating
-                              ? "text-yellow-400 fill-yellow-400"
-                              : "text-gray-300"
-                          }`}
-                        />
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {shop.services?.map((service: any) => (
+                        <span
+                          key={service.id}
+                          className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs mr-2 mb-1"
+                        >
+                          {service.name}
+                        </span>
                       ))}
                     </div>
-
-                    <p className="text-sm text-gray-500">
-                      {workshop.distance} km away
-                    </p>
-
+                    <p className="text-sm text-gray-500">{shop.phone}</p>
                     <button
                       onClick={() =>
-                        router.push(`/workshop_dashboard?id=${workshop.id}`)
+                        router.push(`/workshop_dashboard?id=${shop.id}`)
                       }
                       className="mt-2 bg-indigo-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-indigo-600"
                     >
