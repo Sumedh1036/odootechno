@@ -18,6 +18,7 @@ export default function LoginPage() {
       body: JSON.stringify(form),
     });
     const data = await res.json();
+    console.log(data.role);
     if (data.token) {
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.role);

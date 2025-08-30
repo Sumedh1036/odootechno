@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Star, MapPin, List, Grid, Search, Map } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -14,6 +14,18 @@ export default function Dashboard() {
   const [sortBy, setSortBy] = useState("nearby");
   const [search, setSearch] = useState("");
   const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsLoggedIn(!!localStorage.getItem("token"));
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    setIsLoggedIn(false);
+    router.push("/");
+  };
 
   const workshops = [
     {
@@ -69,18 +81,29 @@ export default function Dashboard() {
           OnRoadCare
         </h1>
         <div className="flex gap-8">
-        <button
-          onClick={() => router.push("/login")}
-          className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-xl shadow-md"
-        >
-          Login
-        </button>
-        <button
-          onClick={() => router.push("/register")}
-          className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-xl shadow-md"
-        >
-          Register
-        </button>
+          {!isLoggedIn ? (
+            <>
+              <button
+                onClick={() => router.push("/login")}
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-xl shadow-md"
+              >
+                Login
+              </button>
+              <button
+                onClick={() => router.push("/register")}
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-xl shadow-md"
+              >
+                Register
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handleLogout}
+              className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-xl shadow-md"
+            >
+              Logout
+            </button>
+          )}
         </div>
       </nav>
 

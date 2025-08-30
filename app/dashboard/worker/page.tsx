@@ -25,6 +25,10 @@ export default function DashboardPage() {
           router.push("/login");
         } else {
           const data = await res.json();
+          if (data.user.role !== "worker") {
+            router.push("/");
+            return;
+          }
           setUser(data.user);
         }
       });

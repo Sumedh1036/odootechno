@@ -20,11 +20,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "JWT secret not configured" }, { status: 500 });
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
 
-    return NextResponse.json({ token });
+    // Return role in the response
+    return NextResponse.json({ token, role: user.role });
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
