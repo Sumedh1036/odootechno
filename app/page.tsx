@@ -5,6 +5,33 @@ import { Star, MapPin, List, Grid, Search, Map } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+import L from "leaflet";
+
+// Dynamic imports for React-Leaflet (to avoid SSR issues in Next.js)
+const MapContainer = dynamic(
+  () => import("react-leaflet").then((mod) => mod.MapContainer),
+  { ssr: false }
+);
+const TileLayer = dynamic(
+  () => import("react-leaflet").then((mod) => mod.TileLayer),
+  { ssr: false }
+);
+const Marker = dynamic(
+  () => import("react-leaflet").then((mod) => mod.Marker),
+  { ssr: false }
+);
+const Popup = dynamic(
+  () => import("react-leaflet").then((mod) => mod.Popup),
+  { ssr: false }
+);
+
+// Custom marker icon (fix for Next.js + Leaflet)
+const workshopIcon = new L.Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
 
 export default function Dashboard() {
   const [view, setView] = useState("list");
@@ -27,7 +54,7 @@ export default function Dashboard() {
     router.push("/");
   };
 
-  const workshops = [
+  const [workshops, setWorkshops] = useState([
     {
       id: 1,
       name: "Babu Mechanic",
@@ -36,15 +63,17 @@ export default function Dashboard() {
       location: "Silver Auditorium, Ahmedabad, Gujarat",
       rating: 4,
       image: "https://source.unsplash.com/400x200/?car,workshop",
+      coords: null, // will fill via geocoding
     },
     {
       id: 2,
       name: "Ramesh Automobiles",
       status: "Closed",
       distance: 12,
-      location: "Silver Auditorium, Ahmedabad, Gujarat",
-      rating: 3,
-      image: "https://source.unsplash.com/400x200/?mechanic,garage",
+      location: "Gandhinagar, Gujarat",
+      rating: 3.5,
+      image: "https://source.unsplash.com/400x200/?car,garage",
+      coords: null, // will fill via geocoding
     },
     {
       id: 3,
@@ -54,15 +83,47 @@ export default function Dashboard() {
       location: "Near Gota, Ahmedabad, Gujarat",
       rating: 5,
       image: "https://source.unsplash.com/400x200/?garage,car",
+      coords: null,
     },
-  ];
+  ]);
+
+  // Fetch coordinates from Nominatim API (OpenStreetMap geocoding)
+  useEffect(() => {
+    async function fetchCoords() {
+      const updated = await Promise.all(
+        workshops.map(async (w) => {
+          if (w.coords) return w;
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+                w.location
+              )}`
+            );
+            const data = await res.json();
+            if (data && data[0]) {
+              return {
+                ...w,
+                coords: [parseFloat(data[0].lat), parseFloat(data[0].lon)],
+              };
+            }
+          } catch (err) {
+            console.error("Geocoding error:", err);
+          }
+          return w;
+        })
+      );
+      setWorkshops(updated);
+    }
+    fetchCoords();
+  }, []);
 
   // Filtering + Search
   let filteredWorkshops = workshops.filter((w) => {
     if (showOpenOnly && w.status !== "Open") return false;
     if (statusFilter && w.status !== statusFilter) return false;
     if (distanceFilter && w.distance > parseFloat(distanceFilter)) return false;
-    if (search && !w.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !w.name.toLowerCase().includes(search.toLowerCase()))
+      return false;
     return true;
   });
 
@@ -107,8 +168,8 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* Banner Image (full width) */}
-      <div className="mt-[72px]"> {/* Push content below fixed navbar */}
+      {/* Banner */}
+      <div className="mt-[72px]">
         <div className="w-full">
           <Image
             src="/images/carmechanic.jpg"
@@ -122,7 +183,7 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-6xl mx-auto p-6">
-        {/* Filters Row */}
+        {/* Filters */}
         <div className="flex flex-wrap items-center gap-4 bg-white rounded-xl shadow p-3 mb-6">
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -217,10 +278,37 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Workshop List/Grid/Map */}
+        {/* View Section */}
         {view === "map" ? (
-          <div className="h-96 w-full bg-gray-200 flex items-center justify-center rounded-xl shadow">
-            <span className="text-gray-600">🗺️ Map View (Google Maps integration here)</span>
+          <div className="h-96 w-full rounded-xl overflow-hidden shadow">
+            <MapContainer
+              center={[23.0225, 72.5714]} 
+              zoom={12}
+              className="h-full w-full"
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+              />
+              {filteredWorkshops.map(
+                (workshop) =>
+                  workshop.coords && (
+                    <Marker
+                      key={workshop.id}
+                      position={workshop.coords}
+                      icon={workshopIcon}
+                    >
+                      <Popup>
+                        <b>{workshop.name}</b>
+                        <br />
+                        {workshop.location}
+                        <br />
+                        {workshop.distance} km away
+                      </Popup>
+                    </Marker>
+                  )
+              )}
+            </MapContainer>
           </div>
         ) : (
           <div
@@ -279,6 +367,15 @@ export default function Dashboard() {
                     <p className="text-sm text-gray-500">
                       {workshop.distance} km away
                     </p>
+
+                    <button
+                      onClick={() =>
+                        router.push(`/workshop_dashboard?id=${workshop.id}`)
+                      }
+                      className="mt-2 bg-indigo-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-indigo-600"
+                    >
+                      View Details
+                    </button>
                   </div>
                 </motion.div>
               ))
