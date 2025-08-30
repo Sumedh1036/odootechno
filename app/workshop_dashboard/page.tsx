@@ -20,7 +20,7 @@ export default function WorkshopDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    fetch("/api/shop/list")
+    fetch("/api/shops")
       .then((res) => res.json())
       .then((data) => {
         const found = data.shops?.find((s: any) => s.id === id);

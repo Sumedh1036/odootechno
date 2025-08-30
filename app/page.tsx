@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 // Dynamic imports for React-Leaflet (to avoid SSR issues in Next.js)
 const MapContainer = dynamic(
@@ -25,6 +25,11 @@ const Popup = dynamic(
   () => import("react-leaflet").then((mod) => mod.Popup),
   { ssr: false }
 );
+
+let L: typeof import("leaflet") | null = null;
+if (typeof window !== "undefined") {
+  L = require("leaflet");
+}
 
 // Custom marker icon (fix for Next.js + Leaflet)
 const workshopIcon = new L.Icon({
@@ -76,7 +81,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/shop/list")
+    fetch("/api/shops")
       .then((res) => res.json())
       .then((data) => setShops(data.shops || []));
   }, []);
