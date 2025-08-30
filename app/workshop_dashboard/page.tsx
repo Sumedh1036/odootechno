@@ -1,47 +1,38 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { motion } from "framer-motion";
 import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
+const workshopIcon = new L.Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
 
 export default function WorkshopDetailPage() {
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
+  const [shop, setShop] = useState<any>(null);
 
-  const shop = {
-    name: "AutoCare Garage",
-    description:
-      "We provide premium car repair and maintenance with expert mechanics, modern tools, and fast service. Your car is our responsibility.",
-    services: [
-      "Oil Change",
-      "Engine Repair",
-      "Tire Replacement",
-      "Car Wash",
-      "Battery Service",
-      "Brake Service",
-    ],
-    location: { lat: 23.0225, lng: 72.5714 },
-    address: "Silver Auditorium, Ahmedabad, Gujarat",
-    owner: "Marc Demo",
-    phone: "+1 555-555-5556",
-    email: "info@autocare.com",
-  };
+  useEffect(() => {
+    if (!id) return;
+    fetch("/api/shop/list")
+      .then((res) => res.json())
+      .then((data) => {
+        const found = data.shops?.find((s: any) => s.id === id);
+        setShop(found);
+      });
+  }, [id]);
 
-  const [reviews, setReviews] = useState([
-    { user: "Mihir Admin", rating: 5, text: "Excellent service and quick delivery!" },
-  ]);
-  const [newReview, setNewReview] = useState("");
-
-  const addReview = () => {
-    if (!newReview) return;
-    setReviews([...reviews, { user: "You", rating: 5, text: newReview }]);
-    setNewReview("");
-  };
+  if (!shop) return <div className="text-center mt-10">Loading...</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200">
       {/* Hero Section */}
-      <div className="relative h-64 bg-[url('https://images.unsplash.com/photo-1525609004556-c46c7d6cf023?auto=format&fit=crop&w=1400&q=80')] bg-cover bg-center">
+      <div className="relative h-64 bg-gradient-to-r from-indigo-400 to-purple-400 flex items-center justify-center">
         <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white">
           <h1 className="text-4xl font-bold">{shop.name}</h1>
           <p className="mt-2 text-lg">{shop.address}</p>
@@ -71,95 +62,48 @@ export default function WorkshopDetailPage() {
           >
             <h2 className="text-2xl font-semibold mb-4">Services</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {shop.services.map((service, i) => (
+              {shop.services?.map((service: any, i: number) => (
                 <motion.div
                   whileHover={{ scale: 1.05 }}
-                  key={i}
+                  key={service.id || i}
                   className="p-4 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl text-center font-medium shadow"
                 >
-                  {service}
+                  {service.name}
                 </motion.div>
               ))}
-            </div>
-          </motion.div>
-
-          {/* Reviews */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-white/80 backdrop-blur-lg p-6 rounded-2xl shadow-xl"
-          >
-            <h2 className="text-2xl font-semibold mb-4">Customer Reviews</h2>
-            <div className="space-y-4">
-              {reviews.map((r, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="p-4 border-l-4 border-yellow-400 bg-white rounded-lg shadow-sm"
-                >
-                  <p className="font-semibold">{r.user} ⭐⭐⭐⭐⭐</p>
-                  <p className="text-gray-700">{r.text}</p>
-                </motion.div>
-              ))}
-            </div>
-            {/* Add Review */}
-            <div className="flex gap-2 mt-4">
-              <input
-                type="text"
-                placeholder="Write a review..."
-                className="flex-1 border p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-yellow-400"
-                value={newReview}
-                onChange={(e) => setNewReview(e.target.value)}
-              />
-              <button
-                onClick={addReview}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2 rounded-lg shadow"
-              >
-                Send
-              </button>
             </div>
           </motion.div>
         </div>
 
         {/* Right Sidebar */}
         <div className="space-y-6">
-          {/* Sticky Contact Card */}
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="sticky top-20 space-y-6"
-          >
-            {/* Owner Info */}
-            <div className="bg-white/90 backdrop-blur-lg p-6 rounded-2xl shadow-xl">
-              <h2 className="text-xl font-semibold mb-2">Owner Info</h2>
-              <p className="font-medium">{shop.owner}</p>
-              <p className="text-gray-600">📞 {shop.phone}</p>
-              <p className="text-gray-600">✉️ {shop.email}</p>
-              <button className="mt-4 w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg shadow">
-                Book Service
-              </button>
-            </div>
+          {/* Owner Info */}
+          <div className="bg-white/90 backdrop-blur-lg p-6 rounded-2xl shadow-xl">
+            <h2 className="text-xl font-semibold mb-2">Owner Info</h2>
+            <p className="font-medium">{shop.owner}</p>
+            <p className="text-gray-600">📞 {shop.phone}</p>
+            <p className="text-gray-600">✉️ {shop.email}</p>
+          </div>
 
-            {/* Map */}
-            <div className="bg-white/90 backdrop-blur-lg p-4 rounded-2xl shadow-xl">
-              <h2 className="text-xl font-semibold mb-2">Location</h2>
-              <div className="h-48 rounded-lg overflow-hidden">
+          {/* Map */}
+          <div className="bg-white/90 backdrop-blur-lg p-4 rounded-2xl shadow-xl">
+            <h2 className="text-xl font-semibold mb-2">Location</h2>
+            <div className="h-48 rounded-lg overflow-hidden">
+              {shop.latitude && shop.longitude && (
                 <MapContainer
-                  center={[shop.location.lat, shop.location.lng]}
+                  center={[shop.latitude, shop.longitude]}
                   zoom={13}
                   scrollWheelZoom={false}
                   className="h-full w-full"
                 >
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  <Marker position={[shop.location.lat, shop.location.lng]}>
+                  <Marker position={[shop.latitude, shop.longitude]} icon={workshopIcon}>
                     <Popup>{shop.name}</Popup>
                   </Marker>
                 </MapContainer>
-              </div>
+              )}
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>
