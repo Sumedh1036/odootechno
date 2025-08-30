@@ -60,9 +60,6 @@ const AdminDashboard = () => {
     setIsSubmitting(true);
     
     try {
-      // Fetch adminId from localStorage
-      const adminId = localStorage.getItem("adminId") || localStorage.getItem("userId") || "";
-
       const response = await fetch('/api/shops', {
         method: 'POST',
         headers: {
@@ -73,8 +70,7 @@ const AdminDashboard = () => {
           location: {
             lat: parseFloat(shopData.location.lat) || 0,
             lng: parseFloat(shopData.location.lng) || 0
-          },
-          adminId // <-- include adminId
+          }
         })
       });
 
@@ -409,4 +405,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default AdminDashboard; 

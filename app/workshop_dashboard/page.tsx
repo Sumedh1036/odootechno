@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { motion } from "framer-motion";
 import "leaflet/dist/leaflet.css";
@@ -14,6 +14,7 @@ const workshopIcon = new L.Icon({
 
 export default function WorkshopDetailPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const id = searchParams.get("id");
   const [shop, setShop] = useState<any>(null);
 
@@ -83,6 +84,7 @@ export default function WorkshopDetailPage() {
             <p className="font-medium">{shop.owner}</p>
             <p className="text-gray-600">📞 {shop.phone}</p>
             <p className="text-gray-600">✉️ {shop.email}</p>
+            <button className="bg-blue-500 rounded-sm padding-5 text-white" onClick={() => router.push('/service')}>request service</button>
           </div>
 
           {/* Map */}
