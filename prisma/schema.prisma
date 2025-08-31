@@ -14,7 +14,7 @@ model User {
   name      String?
   createdAt DateTime @default(now())
   role      String   @default("user")
-  shops     Shop[]   @relation("AdminShops")
+
   workHistory MechanicWorkHistory[]
 }
 
@@ -32,7 +32,7 @@ model Shop {
   updatedAt   DateTime @updatedAt
 
   adminId     Int
-  admin       User     @relation(fields: [adminId], references: [id], name: "AdminShops")
+  
 
   services    ShopService[]
   mechanics   MechanicWorkHistory[]
