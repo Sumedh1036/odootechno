@@ -6,40 +6,70 @@ interface ProfilePageProps {
 }
 
 export default function ProfilePage({ userId }: ProfilePageProps) {
-  const [user, setUser] = useState<any>(null);
   const [shops, setShops] = useState<any[]>([]);
   const [selectedShop, setSelectedShop] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState("mechanic");
+  
 
+  // Safely parse user from localStorage
+  const user = JSON.parse(localStorage.getItem("userId") || "{}");
+  console.log("User from localStorage:", user);
 
   useEffect(() => {
     async function fetchData() {
-      const res = await fetch("/api/profile", {
-        headers: { "user-id": String(userId) },
-      });
-      const data = await res.json();
+      try {
+        // Use userId from props or fallback to user.id from localStorage
+        const id = userId || user;
+        if (!id) {
+          console.error("No userId provided");
+          return;
+        }
 
-      setUser(data.user);
-      setShops(data.shops || []);
-      setName(data.user?.name || "");
-      setRole(data.user?.role || "mechanic");
+        const res = await fetch("/api/profile", {
+          headers: { "user-id": String(id) },
+        });
+        const data = await res.json();
+        console.log("Profile GET response:", data);
 
-      const lastWork = data.user?.workHistory?.[0];
-      
-      setSelectedShop(lastWork?.shopId || "");
+        setShops(data.shops || []);
+        setName(data.user?.name || "");
+        setRole(data.user?.role || "mechanic");
+
+        if (data.user?.workHistory?.length > 0) {
+          setSelectedShop(data.user.workHistory[0].shopId);
+        }
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+      }
     }
 
     fetchData();
-  }, [userId]);
+  }, [userId, user.id]);
 
   const handleSave = async () => {
-    await fetch("/api/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, name, role, selectedShop}),
-    });
-    alert("Profile updated!");
+    try {
+      
+      // Use userId from props or fallback to user.id from localStorage
+      const id = userId || user;
+      if (!id) {
+        console.error("No userId provided");
+        alert("User ID is missing");
+        return;
+      }
+
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "user-id": String(id) },
+        body: JSON.stringify({ name, role, selectedShop, user }),
+      });
+      const data = await res.json();
+      console.log("Profile POST response:", data);
+      alert(data.message || "Profile updated!");
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      alert("Failed to update profile");
+    }
   };
 
   return (
@@ -64,8 +94,6 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
         />
       </div>
 
-      
-
       <div className="mb-6">
         <label className="block text-gray-700 font-medium mb-2">Current Employer</label>
         <select
@@ -74,7 +102,7 @@ export default function ProfilePage({ userId }: ProfilePageProps) {
           onChange={(e) => setSelectedShop(e.target.value)}
         >
           <option value="">Select Shop</option>
-          {shops?.map((shop) => (
+          {shops.map((shop) => (
             <option key={shop.id} value={shop.id}>
               {shop.name}
             </option>
